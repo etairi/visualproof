@@ -93,7 +93,7 @@ def export(project: dict, clone: str, sha: str) -> bool:
     tmp = os.path.join(out_dir, "index.html.tmp")
     label = f"{slug} · {project['branch']} @ {sha[:7]}"
     run([VISUALPROOF, "export", clone, "-o", tmp, "--label", label, "--site", site_dir,
-         "--jobs", "4"])
+         "--jobs", "4", *root_args(project)])
     # The server may have moved on to a newer commit meanwhile: publish only a consistent export.
     if head(clone) != sha or not fully_built(clone):
         os.remove(tmp)
@@ -113,6 +113,11 @@ def export(project: dict, clone: str, sha: str) -> bool:
     save_meta(slug, meta)
     log(f"{slug}: exported {sha[:7]} ({meta['size'] / 1e6:.1f} MB)")
     return True
+
+
+def root_args(project: dict) -> list[str]:
+    """`--root` for each library or module the board reads (`roots`); none: the default targets."""
+    return [a for r in project.get("roots", []) for a in ("--root", r)]
 
 
 def to_webp(png: str, out: str) -> None:
@@ -141,7 +146,8 @@ def draw_previews(project: dict, clone: str, meta: dict) -> None:
                 with open(path, "w") as f:
                     json.dump(recipe, f)
                 r = run([VISUALPROOF, "artwork", clone, "--recipe", path, "-o",
-                         os.path.join(tmp, "art"), "--png", "--jobs", "4"], check=False)
+                         os.path.join(tmp, "art"), "--png", "--jobs", "4", *root_args(project)],
+                        check=False)
                 png = os.path.join(tmp, "art.png")
                 if r.returncode == 0 and os.path.exists(png):
                     to_webp(png, os.path.join(STATE, slug, f"preview-{look}.webp"))
@@ -319,6 +325,8 @@ def card(project: dict, meta: dict) -> str:
         parts.append(f'<p class="lit">Lit: what <code title="{e(full)}">{e(full.split(".")[-1])}</code>'
                      " rests on</p>")
     parts.append(f'<p class="desc">{e(project["description"])}</p>')
+    if project.get("note"):
+        parts.append(f'<p class="lit">{e(project["note"])}</p>')
     if meta:
         commit = f"<code>{e(meta['sha'][:7])}</code>"
         if project["public"]:

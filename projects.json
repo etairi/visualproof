@@ -29,7 +29,11 @@
       "deploy": "geometric-gaussian-lhl",
       "highlight": [
         "GeometricGaussianLHL.numberField_polynomial_lhl"
-      ]
+      ],
+      "roots": [
+        "GeometricGaussianLHL"
+      ],
+      "note": "The board shows the GeometricGaussianLHL library. The SIS-to-kSIS library is not drawn yet: VisualProof 0.11.2 cannot read its «SIS-to-kSIS» module names."
     }
   ]
 }
