@@ -38,3 +38,20 @@ live review that a VisualProof server offers.
 
 GitHub Pages serves `gh-pages` under the custom domain in its `CNAME` file. This needs the DNS record
 `visualproof CNAME etairi.github.io`.
+
+## Building on GitHub's runners (test)
+
+The build host is temporary, so `.github/workflows/boards-test.yml` tests building and exporting
+the boards on GitHub's runners. Start it by hand (Actions → Boards (test) → Run workflow). It
+publishes nothing: each board is uploaded as an artifact, with build and export logs that record time
+and peak memory.
+
+- Private projects are checked out with a read-only deploy key, stored as the secret
+  `DEPLOY_KEY_<SLUG>` (for example `DEPLOY_KEY_SUPERLATTICE_SVP`).
+- Each project's `.lake/build` is kept in the Actions cache. Mathlib comes from `lake exe cache get`.
+- The vendored `SpherePacking` and `MetricCodes` (about 14 GB of memory to build `MetricCodes`) are
+  unpacked from the `vendored-oleans` release.
+  - Each asset is `vendored-oleans-<key>.tar.zst`, where
+    `key = sha256(lean-toolchain ‖ lake-manifest.json ‖ SpherePacking.lean ‖ MetricCodes.lean)[:16]`.
+  - When a key changes, build those modules on a machine with enough memory, pack the files listed
+    in the release notes from `.lake/build`, and upload them under the new key.
