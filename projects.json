@@ -1,0 +1,28 @@
+{
+  "site": {
+    "title": "VisualProof boards",
+    "domain": "visualproof.erkantairi.com",
+    "home": "https://erkantairi.com",
+    "repo": "etairi/visualproof"
+  },
+  "projects": [
+    {
+      "slug": "superlattice-svp",
+      "title": "Superlattice methods for SVP and DGS",
+      "description": "Lean 4 certificate, in progress, for the manuscript “Superlattice methods for the shortest vector problem and discrete Gaussian sampling” (Hhan, Kim, Kim, Laarhoven): the cited results it relies on, its lemmas, and Theorem 5.10 for every lattice.",
+      "repo": "etairi/superlattice-svp",
+      "public": false,
+      "branch": "formalization",
+      "deploy": "superlattice-svp"
+    },
+    {
+      "slug": "geometric-gaussian-lhl",
+      "title": "Geometric Gaussian LHL",
+      "description": "Lean 4 certificates for the manuscript “Gaussian Kernel Lattices and Smoothing Bounds from Theta Integrals”, and the SIS-to-kSIS reduction of ePrint 2025/1852 with the manuscript's improved finite parameters.",
+      "repo": "etairi/geometric-gaussian-lhl",
+      "public": true,
+      "branch": "main",
+      "deploy": "geometric-gaussian-lhl"
+    }
+  ]
+}
