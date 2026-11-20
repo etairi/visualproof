@@ -1,0 +1,147 @@
+name: Boards (test)
+
+# Test of building and exporting the boards on GitHub's runners, for the move off the build VM.
+# It publishes nothing: each board, with the build and export logs (time and peak memory), is
+# uploaded as a workflow artifact. Started by hand.
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: "The slug of one project (empty: every project of projects.json)"
+        required: false
+        default: ""
+
+concurrency:
+  group: boards-test
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.list.outputs.projects }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        env:
+          ONLY: ${{ inputs.project }}
+        run: |
+          projects=$(jq -c --arg only "$ONLY" '[.projects[] | select($only == "" or .slug == $only)
+            | {slug, repo, branch, secret: ("DEPLOY_KEY_" + (.slug | ascii_upcase | gsub("-"; "_")))}]' projects.json)
+          echo "projects=$projects" >> "$GITHUB_OUTPUT"
+
+  board:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJSON(needs.plan.outputs.projects) }}
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+          free -g
+
+      - name: Check out ${{ matrix.project.repo }} (${{ matrix.project.branch }})
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.project.repo }}
+          ref: ${{ matrix.project.branch }}
+          ssh-key: ${{ secrets[matrix.project.secret] }}
+          path: project
+
+      - name: Install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Cache keys
+        id: key
+        working-directory: project
+        run: |
+          echo "deps=$(cat lean-toolchain lake-manifest.json | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the project's build
+        uses: actions/cache/restore@v4
+        with:
+          path: project/.lake/build
+          key: build-${{ matrix.project.slug }}-${{ steps.key.outputs.deps }}-${{ steps.key.outputs.sha }}
+          restore-keys: build-${{ matrix.project.slug }}-${{ steps.key.outputs.deps }}-
+
+      - name: Seed the vendored modules
+        working-directory: project
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f SpherePacking.lean ] && [ -f MetricCodes.lean ] && [ ! -f .lake/build/lib/lean/MetricCodes.olean ]; then
+            key=$(cat lean-toolchain lake-manifest.json SpherePacking.lean MetricCodes.lean | sha256sum | cut -c1-16)
+            if gh release download vendored-oleans --repo "$GITHUB_REPOSITORY" --pattern "vendored-oleans-$key.tar.zst" --dir /tmp; then
+              mkdir -p .lake/build
+              zstd -dc "/tmp/vendored-oleans-$key.tar.zst" | tar -xf - -C .lake/build
+              echo "seeded the vendored modules (key $key)"
+            else
+              echo "::warning::no seed for key $key: the vendored modules are built here (MetricCodes needs about 14 GB)"
+            fi
+          fi
+
+      - name: Mathlib's cache
+        working-directory: project
+        run: lake exe cache get
+
+      - name: Build
+        id: build
+        working-directory: project
+        run: |
+          /usr/bin/time -v lake build > ../build.log 2>&1 || { tail -80 ../build.log; exit 1; }
+          grep -E "^(✖|error|warning: .*sorry)" ../build.log | head -40 || true
+          grep -E "Build completed|Maximum resident set size|Elapsed \(wall clock\)" ../build.log
+
+      - name: Save the project's build
+        if: always() && steps.build.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: project/.lake/build
+          key: build-${{ matrix.project.slug }}-${{ steps.key.outputs.deps }}-${{ steps.key.outputs.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install VisualProof
+        run: |
+          sudo apt-get install -y -q poppler-utils > /dev/null
+          npm install -g --no-fund --no-audit visualproof@0.11.2
+
+      - name: Export the board
+        working-directory: project
+        env:
+          SLUG: ${{ matrix.project.slug }}
+          BRANCH: ${{ matrix.project.branch }}
+          SHA: ${{ steps.key.outputs.sha }}
+        run: |
+          mkdir -p "../board/$SLUG"
+          /usr/bin/time -v visualproof export . -o "../board/$SLUG/index.html" --label "$SLUG · $BRANCH @ ${SHA::7}" --jobs 2 > ../export.log 2>&1 || { tail -60 ../export.log; exit 1; }
+          grep -E "^wrote|Maximum resident set size|Elapsed \(wall clock\)" ../export.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: board-${{ matrix.project.slug }}
+          path: |
+            board
+            build.log
+            export.log
+          retention-days: 7
