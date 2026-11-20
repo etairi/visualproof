@@ -14,6 +14,10 @@ and builds every new commit in a clone of its own. Every 10 minutes a systemd ti
 1. exports the board of each project whose clone holds a new, fully built commit
    (`visualproof export`, a self-contained HTML file; a commit whose build failed or is still
    running is skipped, so the previous board stays up);
+   - it also draws two previews of the board with `visualproof artwork`: the light board style,
+     and the dark "stars" style for visitors in dark mode;
+   - each preview lights what the first of the project's `highlight` theorems that the build has
+     rests on;
 2. writes the landing page from `projects.json`;
 3. force-pushes the whole site as a single commit to `gh-pages`, which GitHub Pages serves.
 
@@ -30,6 +34,8 @@ live review that a VisualProof server offers.
    - `slug`: its path on the site;
    - `title` and `description`: what the landing page shows;
    - `repo`, `public`, `branch`;
+   - `highlight`: full names of theorems, in order of preference, whose trusted base the preview
+     lights;
    - `deploy`: the repository's name. The server's clone is found under
      `~/vp/cache/visualproof/deploy/<deploy>-*/`.
 3. Push to `main`. The next run publishes the project.
