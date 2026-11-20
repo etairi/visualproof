@@ -13,7 +13,11 @@
       "repo": "etairi/superlattice-svp",
       "public": false,
       "branch": "formalization",
-      "deploy": "superlattice-svp"
+      "deploy": "superlattice-svp",
+      "highlight": [
+        "SuperlatticeSVP.theorem_5_10_worstCase",
+        "SuperlatticeSVP.theorem_5_10_general"
+      ]
     },
     {
       "slug": "geometric-gaussian-lhl",
@@ -22,7 +26,10 @@
       "repo": "etairi/geometric-gaussian-lhl",
       "public": true,
       "branch": "main",
-      "deploy": "geometric-gaussian-lhl"
+      "deploy": "geometric-gaussian-lhl",
+      "highlight": [
+        "GeometricGaussianLHL.numberField_polynomial_lhl"
+      ]
     }
   ]
 }
