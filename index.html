@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>VisualProof boards</title>
+<meta name="description" content="Lean 4 formalizations drawn as declaration graphs with VisualProof.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%235e5ce6'/%3E%3Cstop offset='.55' stop-color='%23bf5af2'/%3E%3Cstop offset='1' stop-color='%23ff375f'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='25' fill='none' stroke='url(%23g)' stroke-width='6'/%3E%3Ccircle cx='32' cy='32' r='9' fill='url(%23g)'/%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/jost-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face { font-family: "Jost"; src: url("assets/fonts/jost-latin-wght-normal.woff2") format("woff2");
+  font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Source Sans 3"; src: url("assets/fonts/source-sans-3-latin-wght-normal.woff2")
+  format("woff2"); font-weight: 200 900; font-display: swap; }
+:root {
+  --canvas: #f4f4f7; --panel: #ffffff; --ink: #1c1c22; --muted: #686876; --line: #e4e4eb;
+  --chip: #f3f2f8; --accent: #6b55e0; --ok: #1f9d68;
+  --g1: #5e5ce6; --g2: #bf5af2; --g3: #ff375f;
+  --shadow: 0 1px 2px rgba(23, 23, 46, .05), 0 14px 34px -10px rgba(23, 23, 46, .14);
+  --sky: radial-gradient(1000px 460px at 50% -220px, rgba(191, 90, 242, .14), transparent 70%);
+  --stars: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #090c12; --panel: #121826; --ink: #ecebf6; --muted: #a0a2b6; --line: #242b3c;
+    --chip: #19202f; --accent: #a998ff; --ok: #3ccf8e;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 18px 40px -12px rgba(0, 0, 0, .7);
+    --sky: radial-gradient(1100px 520px at 50% -240px, rgba(94, 92, 230, .26), transparent 70%),
+      linear-gradient(#121a28, #090c12 70%);
+    --stars: radial-gradient(1.3px 1.3px at 23px 41px, rgba(255, 255, 255, .7), transparent 60%),
+      radial-gradient(1px 1px at 151px 97px, rgba(255, 255, 255, .5), transparent 60%),
+      radial-gradient(1.1px 1.1px at 83px 163px, rgba(200, 210, 255, .55), transparent 60%),
+      radial-gradient(.9px .9px at 197px 19px, rgba(255, 255, 255, .45), transparent 60%);
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; color: var(--ink); background: var(--sky), var(--canvas);
+  background-repeat: no-repeat;
+  font: 17px/1.55 "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: var(--stars); background-size: 223px 211px; }
+.wrap { max-width: 1160px; margin: 0 auto; padding: 18px 16px 0; }
+.bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: var(--panel);
+  border-radius: 14px; box-shadow: var(--shadow); padding: 10px 18px; }
+.wordmark, .wm { background: linear-gradient(95deg, var(--g1), var(--g2) 55%, var(--g3));
+  -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 700; }
+.wordmark { font-size: 1.3rem; text-decoration: none; letter-spacing: -.01em; }
+.crumb { color: var(--muted); }
+.pill { display: inline-flex; align-items: center; gap: 7px; font-size: .86rem; color: var(--muted);
+  background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 2px 11px; }
+.pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
+.bar .pill { margin-left: auto; }
+.hero { padding: 64px 4px 40px; }
+h1 { font: 400 clamp(1.5rem, 6.2vw, 3.7rem)/1.08 "Jost", sans-serif;
+  letter-spacing: clamp(.05em, 1.25vw, .17em); text-transform: uppercase; margin: 0 0 18px;
+  overflow-wrap: anywhere; }
+@media (max-width: 600px) { .hero { padding: 40px 2px 28px; } .body { padding: 18px 18px 20px; } }
+.sub { color: var(--muted); font-size: clamp(1.02rem, 2.2vw, 1.22rem); max-width: 720px; margin: 0; }
+.grid { display: grid; gap: 26px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr)); }
+.card { display: flex; flex-direction: column; background: var(--panel); border-radius: 18px;
+  box-shadow: var(--shadow); overflow: hidden; transition: transform .35s ease; }
+.card:hover { transform: translateY(-3px); }
+.art { display: block; aspect-ratio: 16 / 10; overflow: hidden; background: var(--chip); }
+.art img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .7s ease; }
+.card:hover .art img { transform: scale(1.035); }
+.art.pending { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+.art.pending svg { width: 30%; animation: turn 24s linear infinite; }
+.art.pending span { font: 500 .9rem "Jost", sans-serif; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--muted); }
+@keyframes turn { to { transform: rotate(360deg); } }
+.body { display: flex; flex-direction: column; gap: 10px; flex: 1; padding: 22px 24px 24px; }
+h2 { font: 500 1.2rem/1.3 "Jost", sans-serif; letter-spacing: .09em; text-transform: uppercase; margin: 0; }
+.lit { margin: 0; font-size: .93rem; color: var(--muted); }
+.lit code { color: var(--accent); }
+.desc { margin: 0; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: auto; padding-top: 8px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 17px; border-radius: 11px;
+  font-weight: 600; text-decoration: none; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); transition: filter .2s, transform .2s; }
+.btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.btn.primary { color: #fff; border: 0; background: linear-gradient(100deg, var(--g1), var(--g2) 60%, var(--g3));
+  box-shadow: 0 8px 20px -8px rgba(191, 90, 242, .6); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .86em; }
+footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; color: var(--muted);
+  font-size: .92rem; padding: 40px 4px 44px; }
+footer a { color: inherit; }
+@media (prefers-reduced-motion: reduce) { .card, .art img, .btn, .art.pending svg { transition: none; animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="bar">
+  <a class="wordmark" href="https://github.com/LucianoXu/VisualProof">VisualProof</a>
+  <span class="crumb">«boards»</span>
+  <span class="pill"><i></i>2 boards built</span>
+</header>
+<section class="hero">
+  <h1>Lean formalizations</h1>
+  <p class="sub">Each board is a project's declaration graph. Select a theorem to light up what its
+  statement rests on: the definitions to read to believe it, and the axioms it uses.</p>
+</section>
+<main class="grid">
+<article class="card">
+<a class="art" href="superlattice-svp/"><picture><source srcset="superlattice-svp/preview-dark.webp" media="(prefers-color-scheme: dark)"><img src="superlattice-svp/preview-light.webp" alt="The declaration graph of Superlattice methods for SVP and DGS, with what SuperlatticeSVP.theorem_5_10_worstCase rests on lit" width="1600" height="1000" loading="lazy" decoding="async"></picture></a>
+<div class="body">
+<h2>Superlattice methods for SVP and DGS</h2>
+<p class="lit">Lit: what <code title="SuperlatticeSVP.theorem_5_10_worstCase">theorem_5_10_worstCase</code> rests on</p>
+<p class="desc">Lean 4 certificate, in progress, for the manuscript “Superlattice methods for the shortest vector problem and discrete Gaussian sampling” (Hhan, Kim, Kim, Laarhoven): the cited results it relies on, its lemmas, and Theorem 5.10 for every lattice.</p>
+<div class="pills"><span class="pill"><i></i>Built</span><span class="pill"><code>formalization</code>&nbsp;@&nbsp;<code>ebc92a3</code></span><span class="pill">Lean v4.36.0</span><span class="pill">24 Nov 2026</span></div>
+<div class="actions"><a class="btn primary" href="superlattice-svp/">Open the board</a></div>
+</div></article>
+<article class="card">
+<a class="art" href="geometric-gaussian-lhl/"><picture><source srcset="geometric-gaussian-lhl/preview-dark.webp" media="(prefers-color-scheme: dark)"><img src="geometric-gaussian-lhl/preview-light.webp" alt="The declaration graph of Geometric Gaussian LHL, with what GeometricGaussianLHL.numberField_polynomial_lhl rests on lit" width="1600" height="1000" loading="lazy" decoding="async"></picture></a>
+<div class="body">
+<h2>Geometric Gaussian LHL</h2>
+<p class="lit">Lit: what <code title="GeometricGaussianLHL.numberField_polynomial_lhl">numberField_polynomial_lhl</code> rests on</p>
+<p class="desc">Lean 4 certificates for the manuscript “Gaussian Kernel Lattices and Smoothing Bounds from Theta Integrals”, and the SIS-to-kSIS reduction of ePrint 2025/1852 with the manuscript&#x27;s improved finite parameters.</p>
+<p class="lit">The board shows the GeometricGaussianLHL library. The SIS-to-kSIS library is not drawn yet: VisualProof 0.11.2 cannot read its «SIS-to-kSIS» module names.</p>
+<div class="pills"><span class="pill"><i></i>Built</span><span class="pill"><code>main</code>&nbsp;@&nbsp;<a href="https://github.com/etairi/geometric-gaussian-lhl/commit/19fbf238d777f69a9fb389a4ca94c68103600818" style="color:inherit"><code>19fbf23</code></a></span><span class="pill">Lean v4.34.0-rc2</span><span class="pill">19 Sep 2026</span></div>
+<div class="actions"><a class="btn primary" href="geometric-gaussian-lhl/">Open the board</a><a class="btn" href="https://github.com/etairi/geometric-gaussian-lhl">Source</a></div>
+</div></article>
+</main>
+<footer>
+  <span>Generated by <b class="wm">VisualProof</b></span>
+  <span>Frozen exports, rebuilt after every new commit · <a href="https://erkantairi.com">erkantairi.com</a></span>
+</footer>
+</div>
+</body>
+</html>
